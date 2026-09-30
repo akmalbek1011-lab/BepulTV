@@ -1,0 +1,25 @@
+name: BepulTV
+options:
+  bundleIdPrefix: uz.bepultv
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  BepulTV:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    scheme: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: uz.bepultv.app
+        PRODUCT_NAME: BepulTV
+        INFOPLIST_FILE: Support/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        # CarPlay uchun Apple ruxsati olingandan keyin quyidagi qatorni yoqing:
+        # CODE_SIGN_ENTITLEMENTS: Support/BepulTV.entitlements

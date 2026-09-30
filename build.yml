@@ -1,0 +1,43 @@
+# Mac bo'lmasa: GitHub bepul Mac serverida ilovani yig'ib, BepulTV.ipa faylini beradi.
+# GitHub'da: Actions -> Build IPA -> Run workflow. Tugagach Artifacts bo'limidan yuklab olasiz.
+name: Build IPA
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: XcodeGen o'rnatish
+        run: brew install xcodegen
+
+      - name: Xcode loyihasini yaratish
+        run: xcodegen generate
+
+      - name: Yig'ish (imzosiz)
+        run: |
+          xcodebuild \
+            -project BepulTV.xcodeproj \
+            -scheme BepulTV \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: IPA qilish
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/BepulTV.app Payload/
+          zip -qr BepulTV.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BepulTV-ipa
+          path: BepulTV.ipa
