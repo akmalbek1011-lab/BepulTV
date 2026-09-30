@@ -1,5 +1,3 @@
-# Mac bo'lmasa: GitHub bepul Mac serverida ilovani yig'ib, BepulTV.ipa faylini beradi.
-# GitHub'da: Actions -> Build IPA -> Run workflow. Tugagach Artifacts bo'limidan yuklab olasiz.
 name: Build IPA
 
 on:
@@ -11,16 +9,27 @@ jobs:
   build:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      - name: Fayllarni tekshirish
+        run: |
+          echo "Repozitoriydagi fayllar:"
+          find . -path ./.git -prune -o -type f -print
+          P=$(find . -name project.yml -not -path './.git/*' | head -1)
+          if [ -z "$P" ]; then echo "XATO: project.yml topilmadi"; exit 1; fi
+          echo "PROJ_DIR=$(dirname "$P")" >> "$GITHUB_ENV"
 
       - name: XcodeGen o'rnatish
         run: brew install xcodegen
 
       - name: Xcode loyihasini yaratish
+        working-directory: ${{ env.PROJ_DIR }}
         run: xcodegen generate
 
-      - name: Yig'ish (imzosiz)
+      - name: Yig'ish
+        working-directory: ${{ env.PROJ_DIR }}
         run: |
+          set -o pipefail
           xcodebuild \
             -project BepulTV.xcodeproj \
             -scheme BepulTV \
@@ -29,13 +38,19 @@ jobs:
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build
+            build 2>&1 | tee build.log > /dev/null || {
+              echo "=========== XATOLAR ==========="
+              grep -E "error:" build.log | sort -u | head -40
+              exit 1
+            }
+          echo "Yig'ish muvaffaqiyatli"
 
       - name: IPA qilish
+        working-directory: ${{ env.PROJ_DIR }}
         run: |
           mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/BepulTV.app Payload/
-          zip -qr BepulTV.ipa Payload
+          zip -qr "$GITHUB_WORKSPACE/BepulTV.ipa" Payload
 
       - uses: actions/upload-artifact@v4
         with:
