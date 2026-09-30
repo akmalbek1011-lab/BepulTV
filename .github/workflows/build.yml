@@ -11,23 +11,23 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Fayllarni tekshirish
+      - name: Fayllarni joyiga qo'yish
         run: |
-          echo "Repozitoriydagi fayllar:"
-          find . -path ./.git -prune -o -type f -print
-          P=$(find . -name project.yml -not -path './.git/*' | head -1)
-          if [ -z "$P" ]; then echo "XATO: project.yml topilmadi"; exit 1; fi
-          echo "PROJ_DIR=$(dirname "$P")" >> "$GITHUB_ENV"
+          mkdir -p Sources Support
+          find . -maxdepth 1 -name '*.swift' -exec mv {} Sources/ \;
+          [ -f Info.plist ] && mv Info.plist Support/
+          [ -f BepulTV.entitlements ] && mv BepulTV.entitlements Support/
+          sed -i '' 's/placement: \.topBarTrailing/placement: .navigationBarTrailing/' Sources/ContentView.swift
+          echo "Sources:"; ls Sources
+          echo "Support:"; ls Support
 
       - name: XcodeGen o'rnatish
         run: brew install xcodegen
 
       - name: Xcode loyihasini yaratish
-        working-directory: ${{ env.PROJ_DIR }}
         run: xcodegen generate
 
       - name: Yig'ish
-        working-directory: ${{ env.PROJ_DIR }}
         run: |
           set -o pipefail
           xcodebuild \
@@ -46,11 +46,10 @@ jobs:
           echo "Yig'ish muvaffaqiyatli"
 
       - name: IPA qilish
-        working-directory: ${{ env.PROJ_DIR }}
         run: |
           mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/BepulTV.app Payload/
-          zip -qr "$GITHUB_WORKSPACE/BepulTV.ipa" Payload
+          zip -qr BepulTV.ipa Payload
 
       - uses: actions/upload-artifact@v4
         with:
